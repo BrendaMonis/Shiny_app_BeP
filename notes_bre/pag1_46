@@ -1,4 +1,5 @@
 # Reunião sobre o Shiny app
+
 # * Conectando o GitHub e o RStudio: ----
 credentials::set_github_pat("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")
 
@@ -11,11 +12,11 @@ install.packages(c(  "gapminder", "ggforce", "gh", "globals", "openintro",
 library(shiny)
 
 # * Criando um diretório e arquivo para o app: ----
-##ui <- fluidPage("Hello, world!")
+ui <- fluidPage("Hello, world!")
 
-##server <- function(input, output, session) {}
+server <- function(input, output, session) {}
 
-##shinyApp(ui, server) # Este comando irá construir e iniciar uma aplicação shiny.
+shinyApp(ui, server) # Este comando irá construir e iniciar uma aplicação shiny.
 
 # * Adicionando novos comandos ao UI: ----
 ui <- fluidPage(  
@@ -23,9 +24,9 @@ ui <- fluidPage(
   verbatimTextOutput("summary"),  tableOutput("table")
   )
 
-##server <- function(input, output, session) {}
+server <- function(input, output, session) {}
 
-##shinyApp(ui, server)
+shinyApp(ui, server)
 
 # fluidPage() é uma função de layout que estabelece a estrutura visual básica da página;
 # selectInput() é um controle de entrada que permite ao usuário interagir com o aplicativo, fornecendo um valor;
@@ -48,3 +49,272 @@ output$table <- renderTable({
 }
 
 shinyApp(ui, server)
+
+# renderPrint() é emparelhado com TextOutput() para exibir um resumo estatístico com texto de largura fixa (verbatim)
+# renderTable() é emparelhado com TextOutput() para mostrar os dados de entrada em uma tabela
+
+# * Reduzindo os exemplos: ----
+# a função Reactive Expressions torna o código mais rápido e eficiente, visto que precisa rodar apenas uma vez.
+
+server <- function(input, output, session) {
+  # Create a reactive expression  
+  dataset <- reactive({   
+    get(input$dataset, "package:datasets") 
+  })  
+  
+  output$summary <- renderPrint({
+    # Use a reactive expression by calling it like a function    
+    summary(dataset()) 
+  })  
+  
+  output$table <- renderTable({   
+    dataset() 
+  })
+  }
+  
+shinyApp(ui, server)
+
+# * Exercício para criar um ShinyApp: ----
+
+# 1)
+tableOutput("mortgage")
+output$greeting <- renderText({ 
+  paste0("Hello ", input$name)
+})
+numericInput("age", "How old are you?", value = NA)
+textInput("name", "What's your name?")
+textOutput("greeting")
+output$histogram <- renderPlot({ 
+  hist(rnorm(1000))
+  }, res = 96)
+
+# 2) 
+library(shiny)
+
+ui <- fluidPage(  
+  sliderInput("x", label = "If x is", min = 1, max = 50, value = 30),  #SliderInput faz a seleção por barra
+  "then x times 5 is", 
+  textOutput("product")
+)
+
+server <- function(input, output, session) {  
+  output$product <- renderText({  
+    x * 5 
+  })
+}
+
+shinyApp(ui, server) # Este código dá erro, para concertar deve adicionar uma tabela para y
+
+# 3)
+
+library(shiny)
+
+ui <- fluidPage(  
+  sliderInput("x", "If x is", min = 1, max = 50, value = 30), 
+  sliderInput("y", "and y is", min = 1, max = 50, value = 5), # Aqui adicionou a tabela de input y, que servirá como base para o produto
+  "then, (x * y) is", textOutput("product"),  
+  "and, (x * y) + 5 is", textOutput("product_plus5"), 
+  "and (x * y) + 10 is", textOutput("product_plus10")
+)
+
+server <- function(input, output, session) {  
+  output$product <- renderText({   
+    product <- input$x * input$y  # Aqui declara a variável produto, bem como sua saída
+    product  
+  })  
+  output$product_plus5 <- renderText({   
+    product <- input$x * input$y   
+    product + 5  
+  })  
+  output$product_plus10 <- renderText({    
+    product <- input$x * input$y    
+    product + 10  
+  })
+}
+
+shinyApp(ui, server)
+
+# 4)
+
+library(shiny)
+library(ggplot2)
+
+datasets <- c("economics", "faithfuld", "seals")
+ui <- fluidPage( 
+  selectInput("dataset", "Dataset", choices = datasets), 
+  verbatimTextOutput("summary"), 
+  tableOutput("plot")
+)
+
+server <- function(input, output, session) {
+  dataset <- reactive({  
+    get(input$dataset, "package:ggplot2")
+  }) 
+  output$summary <- renderPrint({ 
+    summary(dataset()) 
+    }) 
+  output$plot <- renderPlot({  
+    plot(dataset)  
+  }, res = 96)
+} # Esta parte do código fiquei em dúvida
+
+shinyApp(ui, server)
+
+
+# * Input: ----
+
+# Nesta parte aprendemos que precisamos declarar as entradas para chamá-las no server
+
+# 1) Função de nome e senha:
+
+library(shiny)
+
+ui <- fluidPage( 
+  textInput("name", "What's your name?"), 
+  passwordInput("password", "What's your password?"),
+  textAreaInput("story", "Tell me about yourself", rows = 3)
+) # Garantir a segurança do app e certificar-se que está sendo usado por humanos. 
+
+# ????? server <- function(input, output, session) {}
+
+shinyApp(ui, server)
+
+# 2) Função que cria uma tabela para colocar número e uma selecioná-los
+
+library(shiny)
+
+ui <- fluidPage( 
+  numericInput("num", "Number one", value = 0, min = 0, max = 100),
+  sliderInput("num2", "Number two", value = 50, min = 0, max = 100), 
+  sliderInput("rng", "Range", value = c(10, 20), min = 0, max = 100)
+)
+
+# Server ?
+
+shinyApp(ui, server)
+
+# 3) Função que gera um calendário para colocar ano que nasceu e uma data futura
+
+library(shiny)
+
+ui <- fluidPage( 
+  dateInput("dob", "When were you born?"), 
+  dateRangeInput("holiday", "When do you want to go on vacation next?")
+)
+
+# Server ?
+
+shinyApp(ui, server)
+
+# 4) Função para selecionar uma escolha
+
+library(shiny)
+
+animals <- c("dog", "cat", "mouse", "bird", "other", "I hate animals")
+
+ui <- fluidPage(  
+  selectInput("state", "What's your favourite state?", state.name),
+  radioButtons("animal", "What's your favourite animal?", animals)
+)
+
+# Server ?
+
+shinyApp(ui, server)
+
+# 5) Função que cria animações (emoji) para a seleção
+
+library(shiny)
+
+ui <- fluidPage(  
+  radioButtons("rb", "Choose one:",    
+    choiceNames = list(
+      icon("angry"),
+      icon("smile"),
+      icon("sad-tear")    
+    ),    
+    choiceValues = list("angry", "happy", "sad") 
+  )
+)
+
+# Server ?
+
+shinyApp(ui, server)
+
+# 6) Função que seleciona múltiplos elementos 
+
+library(shiny)
+
+ui <- fluidPage(  
+  selectInput(    
+    "state", "What's your favourite state?", state.name, 
+    multiple = TRUE  
+  )
+)
+
+# Server ?
+
+shinyApp(ui, server)
+
+# 7) Função de múltiplas escolhas
+
+library(shiny)
+
+animals <- c("dog", "cat", "mouse", "bird", "other", "I hate animals")
+
+ui <- fluidPage( 
+  checkboxGroupInput("animal", "What animals do you like?", animals)
+)
+
+# Server ?
+
+shinyApp(ui, server)
+
+# 8) Função de múltipla escolha de sim ou não
+
+library(shiny)
+
+ui <- fluidPage(  
+  checkboxInput("cleanup", "Clean up?", value = TRUE), 
+  checkboxInput("shutdown", "Shutdown?")
+)
+
+# Server ?
+
+shinyApp(ui, server)
+
+# 9) Função que seleciona arquivos do computador
+
+library(shiny)
+
+ui <- fluidPage( 
+  fileInput("upload", NULL)
+)
+
+# Server ?
+
+shinyApp(ui, server)
+
+# 10) Função que adiciona botões de clicar
+
+library(shiny)
+
+ui <- fluidPage( 
+  actionButton("click", "Click me!"), 
+  actionButton("drink", "Drink me!", icon = icon("cocktail"))
+)
+
+# Server ?
+
+shinyApp(ui, server)
+
+# Função que muda a aparência:
+
+ui <- fluidPage( 
+  fluidRow(    
+   actionButton("click", "Click me!", class = "btn-danger"),   
+    actionButton("drink", "Drink me!", class = "btn-lg btn-success")  
+  ),  
+  fluidRow(  
+    actionButton("eat", "Eat me!", class = "btn-block")  
+  )
+)
