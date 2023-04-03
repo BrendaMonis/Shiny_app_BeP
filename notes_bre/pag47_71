@@ -1,0 +1,48 @@
+# 2ª Reunião sobre o Shiny app
+
+# * Instalando e lendo alguns pacotes solicitados: ----
+install.packages(c(  "gapminder", "ggforce", "gh", "globals", "openintro", 
+                     "profvis",  "RSQLite", "shiny", "shinycssloaders", "shinyFeedback", 
+                     "shinythemes", "testthat", "thematic", "tidyverse", "vroom",  "waiter", 
+                     "xml2", "zeallot"))
+
+library(shiny)
+
+
+# * Outputs: ----
+# 1) Gráficos:
+
+ui <- fluidPage(
+  plotOutput("plot", width = "400px")
+)
+
+server <- function(input, output, session) {
+  output$plot <- renderPlot(plot(1:5), res = 96)
+}
+
+shinyApp(ui, server)
+
+# 2) Downloads: Utiliza downloadButton() ou downloadLink()
+
+# 3) Simples exemplo de render:
+
+ui <- fluidPage(
+  textOutput("greeting")
+)
+
+server <- function(input, output, session) {
+  output$greeting <- renderText("Hello human!") # renderText 
+}
+
+# 4) Inserindo o nome automaticamente no texto
+
+ui <- fluidPage(
+  textInput("name", "What's your name?"),
+  textOutput("greeting")
+)
+
+server <- function(input, output, session) {
+  output$greeting <- renderText({
+    paste0("Hello ", input$name, "!")
+  })
+}
