@@ -318,3 +318,37 @@ ui <- fluidPage(
     actionButton("eat", "Eat me!", class = "btn-block")  
   )
 )
+
+# * Outputs: ---- 
+
+# 1) Diferença entre Text e print
+
+library(shiny)
+
+ui <- fluidPage(
+  textOutput("text"),
+  verbatimTextOutput("print")
+)
+
+server <- function(input, output, session) {
+  output$text <- renderText("hello!")
+  output$print <- renderPrint("hello!")
+}
+
+shinyApp(ui, server)
+
+# 2) Diferentes tabelas
+
+library(shiny)
+
+ui <- fluidPage(
+  tableOutput("static"),
+  dataTableOutput("dynamic")
+)
+
+server <- function(input, output, session) {
+  output$static <- renderTable(head(mtcars))
+  output$dynamic <- renderDataTable(mtcars, options = list(pageLength = 5))
+}
+
+shinyApp(ui, server)
