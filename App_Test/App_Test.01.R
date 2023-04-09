@@ -6,7 +6,7 @@ library(shiny)
 ui <- fluidPage(
   
   # App title ----
-  titlePanel("Uploading Files"),
+  titlePanel("Analysis of Variance"),
   
   # Sidebar layout with input and output definitions ----
   sidebarLayout(
@@ -32,7 +32,7 @@ ui <- fluidPage(
                    choices = c(Comma = ",",
                                Semicolon = ";",
                                Tab = "\t"),
-                   selected = ","),
+                   selected = ";"),
       
       # Input: Select quotes ----
       radioButtons("quote", "Quote",
@@ -53,35 +53,30 @@ ui <- fluidPage(
       # Horizontal line ----
       tags$hr(),
       
-      # Input: Select the colunna for analysis ----
-      radioButtons("x", "Lab_x",
-                   choices = c(1:5),
-                   selected = "1"),
-      
-      # Input: Select the colunna for analysis ----
-      radioButtons("y", "Lab_y",
-                   choices = c(1:5),
-                   selected = "1")
-      
+      # Input: Variáveis que são dependentes dos dados
+      uiOutput("variable")
     ),
     
     # Main panel for displaying outputs ----
     mainPanel(
       
+      # Output: Title
+      h3("ANOVA Table"),
+      
       # Output: Data file ----
       tableOutput("contents"),
-      verbatimTextOutput("print")
-      # tableOutput("print")
+      #tableOutput("aovSummary")
+      verbatimTextOutput("aovSummary"),
     )
     
   )
 )
 
 # Define server logic to read selected file ----
-server <- function(input, output) {
+server <- function(input, output, session) {
   
-  output$contents <- renderTable({
-    
+  # Define a reactive value for the data frame
+  df <- reactive({
     # input$file1 will be NULL initially. After the user selects
     # and uploads a file, head of that data file by default,
     # or all rows if selected, will be shown.
@@ -97,10 +92,10 @@ server <- function(input, output) {
     #conditions, including errors and warnings.
     tryCatch(
       {
-        df <- read.csv(input$file1$datapath,
-                       header = input$header,
-                       sep = input$sep,
-                       quote = input$quote)
+        read.csv(input$file1$datapath,
+                 header = input$header,
+                 sep = input$sep,
+                 quote = input$quote)
       },
       error = function(e) {
         # return a safeError if a parsing error occurs
@@ -112,34 +107,44 @@ server <- function(input, output) {
         #always display the error in the app itself.
       }
     )
-    
-    if(input$disp == "head") {
-      return(head(df))
-    }
-    else {
-      return(df)
+  })
+  
+  # Output: Selection the Dependent and Independent Variable 
+  output$variable <- renderUI({
+    if(is.null(input$file1$datapath)){
+      return()
+    }else{
+      list (radioButtons("dvar", "Please Pick The Dependent Variable", choices = names(df())),
+            radioButtons("ivar", "Please Pick The Independent Variable", choices = names(df())),
+            actionButton("submit", "Submit")
+      )
     }
   })
   
-  output$print <- renderPrint(
-    tryCatch(
-      {
-        df <- read.csv(input$file1$datapath,
-                       header = input$header,
-                       sep = input$sep,
-                       quote = input$quote)
-      },
-      error = function(e) {
-        stop(safeError(e))
-      }
-    ),
-    ## Nessa parte para correr a análise, sempre dá erro
-    # desing <- aov(df[,input$y] ~ df[,input$x], df),
-    # return(summary(aov(df[,input$y] ~ df[,input$x], df)))
-    # desing <- reactive({
-    #   aov(df[,input$y] ~ df[,input$x])
-    # }),
-    # return(df$phen1)
-    )
+  # Output: View Data File
+  output$contents <- renderTable({
+    req(df())
+    
+    if(input$disp == "head") {
+      return(head(df()))
+    }
+    else {
+      return(df())
+    }
+  })
+  
+  output$aovSummary = renderPrint({
+    req(df())
+    
+    if(input$submit > 0){
+      isolate(
+        fit <- aov(df()[,input$dvar] ~ df()[,input$ivar], data = df())
+      )
+      return(summary(fit))
+      #return(drop1(fit, ~ . , test = 'F'))
+    }
+  })
+  
 }
+
 shinyApp(ui, server)
