@@ -1,0 +1,256 @@
+---
+title: "Graphics"
+author: "Brenda M. Moreno"
+date: "02/04/2023"
+output:
+  html_document: 
+    toc: yes
+    highlight: kate
+    theme: flatly
+    number_sections: yes
+---
+
+
+# CHAPTER 7:
+
+  This chapter is intended to teach how to make __interactive graphics__.
+  
+# Introduction:
+
+  If you haven’t already installed Shiny, install it now with:
+```{r, eval = FALSE} 
+install.packages("shiny")
+```
+
+  Then load in your current R session:
+```{r, eval = TRUE} 
+library(shiny)
+library(ggplot2)
+``` 
+
+# Basics:
+  A plot can respond to four different mouse1 events: click, dblclick (double-click), hover (when the mouse stays in the same place for a little while), and brush (a 105 rectangular selection tool). 
+  
+```{r, eval = TRUE, echo = TRUE} 
+ui <- fluidPage(
+  plotOutput("plot", click = "plot_click"),
+  verbatimTextOutput("info")
+)
+
+server <- function(input, output) {
+  output$plot <- renderPlot({
+    plot(mtcars$wt, mtcars$mpg)
+  }, res = 96)
+  
+  output$info <- renderPrint({
+    req(input$plot_click)
+    x <- round(input$plot_click$x, 2)
+    y <- round(input$plot_click$y, 2)
+    cat("[", x, ", ", y, "]", sep = "")
+  })
+}
+
+shinyApp(ui, server)
+```
+
+# Clicking:
+    First we will study the nearPoints() with plot.
+```{r, eval = TRUE, echo = TRUE} 
+ui <- fluidPage(
+  plotOutput("plot", click = "plot_click"),
+  tableOutput("data")
+)
+
+server <- function(input, output, session) {
+  output$plot <- renderPlot({
+    plot(mtcars$wt, mtcars$mpg)
+  }, res = 96)
+
+  output$data <- renderTable({
+    nearPoints(mtcars, input$plot_click, xvar = "wt", yvar = "mpg")
+  })
+}
+
+shinyApp(ui, server)
+```
+
+  And than we will study the nearPoints() with ggplot2.
+```{r, eval = TRUE, echo = TRUE} 
+ui <- fluidPage(
+  plotOutput("plot", click = "plot_click"),
+  tableOutput("data")
+)
+
+server <- function(input, output, session) {
+  output$plot <- renderPlot({
+    ggplot(mtcars, aes(wt, mpg)) + geom_point()
+  }, res = 96)
+
+  output$data <- renderTable({
+    req(input$plot_click)
+    nearPoints(mtcars, input$plot_click)
+  })
+}
+
+shinyApp(ui, server)
+```
+  Another way to use nearPoints() is with allRows = TRUE and addDist = TRUE.
+  That will return the original data frame with two new columns:
+    • dist_ gives the distance between the row and the event (in pixels).
+  • selected_ says whether or not it’s near the click event (i.e., whether or not it’s a row that would be returned when allRows = FALSE).
+
+# Other Point Events:
+    The same approach works equally well with click, dblclick, and hover: just change the name of the argument.
+
+# Brushing:
+  Another way of selecting points on a plot is to use a brush, a rectangular selection defined by four edges.
+```{r, eval = TRUE, echo = TRUE} 
+ui <- fluidPage(
+  plotOutput("plot", brush = "plot_brush"),
+  tableOutput("data")
+)
+
+server <- function(input, output, session) {
+  output$plot <- renderPlot({
+    ggplot(mtcars, aes(wt, mpg)) + geom_point()
+  }, res = 96)
+
+  output$data <- renderTable({
+    brushedPoints(mtcars, input$plot_brush)
+  })
+}
+
+shinyApp(ui, server)
+```
+  OBS: Use brushOpts() to control the color (fill and stroke), or restrict brushing to a single dimension with direction = "x" or "y".
+
+# Modifying the Plot:
+  As you might guess from the name, reactiveVal() is rather similar to reactive(). You create a reactive value by calling reactiveVal() with its initial value, and retrieve that value in the same way as a reactive:
+```{r, eval = FALSE, echo = TRUE} 
+val <- reactiveVal(10)
+val()
+```
+
+  The big difference is that you can also update a reactive value, and all reactive consumers that refer to it will recompute. A reactive value uses a special syntax for updating—you call it like a function, with the first argument being the new value:
+```{r, eval = FALSE, echo = TRUE} 
+val(20)
+val()
+```
+  Unfortunately, if you actually try to run this code in the console, you’ll get an error because it has to be run in a reactive environment. That makes experimentation an debugging more challenging because you’ll need to use browser() or similar to pause execution within the call to shinyApp().
+```{r, eval = TRUE, echo = TRUE} 
+set.seed(1014)
+df <- data.frame(x = rnorm(100), y = rnorm(100)) #??
+
+ui <- fluidPage(
+  plotOutput("plot", click = "plot_click", )
+)
+
+server <- function(input, output, session) {
+  dist <- reactiveVal(rep(1, nrow(df)))
+  observeEvent(input$plot_click,
+    dist(nearPoints(df, input$plot_click, allRows = TRUE, addDist = TRUE)$dist_)
+)
+  
+  output$plot <- renderPlot({
+    df$dist <- dist()
+    ggplot(df, aes(x, y, size = dist)) +
+      geom_point() +
+      scale_size_area(limits = c(0, 1000), max_size = 10, guide = NULL)
+    }, res = 96)
+}
+
+shinyApp(ui, server)
+# This app uses a reactiveVal() to store the distance to the point that was last clicked, which is then mapped to point size. Here I show the results of clicking on a point on the far left.
+```
+
+  Here’s a more complicated idea. I want to use a brush to progressively add points to a selection. Here I display the selection using different colors, but you could imagine many other applications. 
+```{r, eval = TRUE, echo = TRUE} 
+ui <- fluidPage(
+  plotOutput("plot", brush = "plot_brush", dblclick = "plot_reset")
+)
+
+server <- function(input, output, session) {
+  selected <- reactiveVal(rep(FALSE, nrow(mtcars)))
+
+  observeEvent(input$plot_brush, { # ?brush?
+    brushed <- brushedPoints(mtcars, input$plot_brush, allRows = TRUE)$selected_
+    selected(brushed | selected())
+  })
+  observeEvent(input$plot_reset, {
+    selected(rep(FALSE, nrow(mtcars)))
+  })
+
+  output$plot <- renderPlot({
+    mtcars$sel <- selected()
+    ggplot(mtcars, aes(wt, mpg)) +
+      geom_point(aes(colour = sel)) +
+      scale_colour_discrete(limits = c("TRUE", "FALSE"))
+    }, res = 96)
+}
+
+shinyApp(ui, server)
+
+```
+
+# Dynamic Height and Width:
+
+```{r, eval = TRUE, echo = TRUE} 
+ui <- fluidPage(
+  sliderInput("height", "height", min = 100, max = 500, value = 250),
+  sliderInput("width", "width", min = 100, max = 500, value = 250),
+  plotOutput("plot", width = 250, height = 250)
+)
+
+server <- function(input, output, session) {
+  output$plot <- renderPlot(
+    width = function() input$width,
+    height = function() input$height,
+    res = 96,
+    {
+      plot(rnorm(20), rnorm(20))
+    }
+  )
+}
+
+shinyApp(ui, server)
+
+```
+
+# Images:
+  You can use renderImage() if you want to display existing images (not plots). For example, you might have a directory of photographs that you want shown to the user -> For add the logo of app.
+```{r, eval = TRUE, echo = TRUE} 
+puppies <- tibble::tribble(
+  ~breed, ~ id, ~author,
+  "corgi", "eoqnr8ikwFE","alvannee",
+  "labrador", "KCdYn0xu2fU", "shaneguymon",
+  "spaniel", "TzjMd7i5WQI", "_redo_"
+)
+
+ui <- fluidPage(
+  selectInput("id", "Pick a breed", choices = setNames(puppies$id, puppies$breed)),
+  htmlOutput("source"),
+  imageOutput("photo")
+)
+
+server <- function(input, output, session) {
+  output$photo <- renderImage({
+    list(
+      src = file.path("puppy-photos", paste0(input$id, ".jpg")),
+      contentType = "image/jpeg",
+      width = 500,
+      height = 650
+    )
+  }, deleteFile = FALSE)
+
+  output$source <- renderUI({
+    info <- puppies[puppies$id == input$id, , drop = FALSE]
+    HTML(glue::glue("<p>
+<a href='https://unsplash.com/photos/{info$id}'>original</a> by
+<a href='https://unsplash.com/@{info$author}'>{info$author}</a>
+</p>"))
+  })
+}
+
+shinyApp(ui, server)
+
+```  
