@@ -1,0 +1,150 @@
+---
+title: "Uploads and Downloads"
+author: "Brenda M. Moreno"
+date: "02/04/2023"
+output:
+  html_document: 
+    toc: yes
+    highlight: kate
+    theme: flatly
+    number_sections: yes
+runtime: shiny
+---
+
+# CHAPTER 9:
+
+  In this chapter We’ll learn how Transferring files to and from the user is a common feature of apps. You can use it to upload data for analysis or download the results as a dataset or as a report. This chapter shows the UI and server components that you’ll need to transfer files in and out of your app. We begin by loading shiny:
+
+```{r, eval = TRUE} 
+library(shiny)
+``` 
+  
+# Upload
+```{r, eval = TRUE, echo = TRUE} 
+ui <- fluidPage(
+  fileInput("upload", NULL, buttonLabel = "Upload...", multiple = TRUE),
+  tableOutput("files")
+)
+
+server <- function(input, output, session) {
+  output$files <- renderTable(input$upload)
+}
+
+shinyApp(ui, server)
+```
+
+## Uploading Data
+  you can upload a .csv or .tsv file and see the first n rows
+```{r, eval = TRUE, echo = TRUE} 
+ui <- fluidPage(
+  fileInput("file", NULL, accept = c(".csv", ".tsv")),
+  numericInput("n", "Rows", value = 5, min = 1, step = 1),
+  tableOutput("head")
+)
+
+server <- function(input, output, session) {
+  data <- reactive({
+    req(input$file)
+
+    ext <- tools::file_ext(input$file$name)
+    switch(ext,
+      csv = vroom::vroom(input$file$datapath, delim = ","),
+      tsv = vroom::vroom(input$file$datapath, delim = "\t"),
+      validate("Invalid file; Please upload a .csv or .tsv file")
+    )
+  })
+  output$head <- renderTable({
+    head(data(), input$n)
+  })
+}
+shinyApp(ui, server)
+```  
+
+# Download  
+
+## Basics
+```{r, eval = TRUE, echo = TRUE} 
+ui <- fluidPage(
+  downloadButton("download1"),
+  downloadLink("download2")
+)
+
+server <- function(input, output, session) {
+}
+
+shinyApp(ui, server)
+```  
+  You can customize their appearance using the same class and icon arguments as for **actionButtons()**\
+  
+## Downloading Data
+  recommendation: using .tsv (tab-separated values) instead of .csv (comma-separated values) because many European countries use commas to separate the whole and fractional parts of a number
+```{r, eval = TRUE, echo = TRUE} 
+ui <- fluidPage(
+  selectInput("dataset", "Pick a dataset", ls("package:datasets")),
+  tableOutput("preview"),
+  downloadButton("download", "Download .tsv")
+)
+
+server <- function(input, output, session) {
+  data <- reactive({
+    out <- get(input$dataset, "package:datasets")
+    if (!is.data.frame(out)) {
+      validate(paste0("'", input$dataset, "' is not a data frame"))
+    }
+    out
+  })
+
+  output$preview <- renderTable({
+    head(data())
+  })
+
+  output$download <- downloadHandler(
+    filename = function() {
+      paste0(input$dataset, ".tsv")
+    },
+    content = function(file) {
+      vroom::vroom_write(data(), file)
+    }
+  )
+}
+
+shinyApp(ui, server)
+```   
+
+## Downloading Reports
+  As well as downloading data, you may want the users of your app to download a report that summarizes the result of interactive exploration in the Shiny app. This is
+quite a lot of work, because you also need to display the same information in a different format, but it is very useful for high-stakes apps.
+  One powerful way to generate such a report is with a parameterized RMarkdown document. A parameterized RMarkdown file has a params field in the YAML metadata
+
+    ??? I didn't understand very well
+    
+```{r, eval = TRUE, echo = TRUE} 
+ui <- fluidPage(
+  sliderInput("n", "Number of points", 1, 100, 50),
+  downloadButton("report", "Generate report")
+)
+
+server <- function(input, output, session) {
+  output$report <- downloadHandler(
+    filename = "report.html",
+    content = function(file) {
+      params <- list(n = input$n)
+
+      id <- showNotification(
+        "Rendering report...",
+        duration = NULL,
+        closeButton = FALSE
+      )
+      on.exit(removeNotification(id), add = TRUE)
+
+      rmarkdown::render("report.Rmd",
+        output_file = file,
+        params = params,
+        envir = new.env(parent = globalenv())
+      )
+    }
+  )
+}
+
+shinyApp(ui, server)
+```   
