@@ -1,0 +1,176 @@
+---
+title: "Dynamic UI"
+author: "Brenda M. Moreno"
+date: "02/04/2023"
+output:
+  html_document: 
+    toc: yes
+    highlight: kate
+    theme: flatly
+    number_sections: no
+runtime: shiny
+---
+
+# CHAPTER 10:
+
+  In this chapter We’ll learn how to create dynamic user interfaces, changing the UI using code run in the server function. We begin by loading shiny and other library:
+
+```{r, eval = TRUE} 
+library(shiny)
+library(dplyr, warn.conflicts = FALSE)
+``` 
+
+  There are three key techniques for creating dynamic user interfaces:\
+  • Using the update family of functions to modify parameters of input controls;\
+  • Using **tabsetPanel()** to conditionally show and hide parts of the user interface;\
+  • Using **uiOutput()** and **renderUI()** to generate selected parts of the user interface with code.\
+  
+# Updating Inputs
+```{r, eval = TRUE, echo = TRUE} 
+ui <- fluidPage(
+  numericInput("min", "Minimum", 0),
+  numericInput("max", "Maximum", 3),
+  sliderInput("n", "n", min = 0, max = 3, value = 1)
+)
+
+server <- function(input, output, session) {
+  observeEvent(input$min, {
+    updateSliderInput(inputId = "n", min = input$min)
+  })
+  observeEvent(input$max, {
+    updateSliderInput(inputId = "n", max = input$max)
+  })
+}
+
+shinyApp(ui, server)
+```
+
+      In this code I didn't understand the **observeEvent** and the ***updateSliderInput** very well.
+      
+## Simple Uses
+```{r, eval = TRUE, echo = TRUE} 
+ui <- fluidPage(
+  sliderInput("x1", "x1", 0, min = -10, max = 10),
+  sliderInput("x2", "x2", 0, min = -10, max = 10),
+  sliderInput("x3", "x3", 0, min = -10, max = 10),
+  actionButton("reset", "Reset")
+)
+
+server <- function(input, output, session) {
+  observeEvent(input$reset, {
+    updateSliderInput(inputId = "x1", value = 0)
+    updateSliderInput(inputId = "x2", value = 0)
+    updateSliderInput(inputId = "x3", value = 0)
+  })
+}
+
+shinyApp(ui, server)
+```
+  
+  A similar application is to tweak the text of an action button so you know exactly what it’s going to do.
+```{r, eval = TRUE, echo = TRUE} 
+ui <- fluidPage(
+  numericInput("n", "Simulations", 10),
+  actionButton("simulate", "Simulate")
+)
+
+server <- function(input, output, session) {
+  observeEvent(input$n, {
+    label <- paste0("Simulate ", input$n, " times")
+    updateActionButton(inputId = "simulate", label = label)
+  })
+}
+shinyApp(ui, server)
+```  
+
+      What is the 10 in the code??  
+  
+##  Hierarchical Select Boxes
+  A interactive drill-down across multiple categories
+```{r, eval = FALSE, echo = TRUE} 
+sales <- vroom::vroom(
+  "sales-dashboard/sales_data_sample.csv",
+  col_types = list(),
+  na = ""
+)
+
+sales %>%
+  select(TERRITORY, CUSTOMERNAME, ORDERNUMBER, everything()) %>%
+  arrange(ORDERNUMBER)
+
+ui <- fluidPage(
+  selectInput("territory", "Territory", choices = unique(sales$TERRITORY)),
+  selectInput("customername", "Customer", choices = NULL),
+  selectInput("ordernumber", "Order number", choices = NULL),
+  tableOutput("data")
+)
+
+server <- function(input, output, session) {
+  territory <- reactive({
+    filter(sales, TERRITORY == input$territory)
+  })
+  observeEvent(territory(), {
+    choices <- unique(territory()$CUSTOMERNAME)
+    updateSelectInput(inputId = "customername", choices = choices)
+  })
+
+  customer <- reactive({
+    req(input$customername)
+    filter(territory(), CUSTOMERNAME == input$customername)
+  })
+  observeEvent(customer(), {
+    choices <- unique(customer()$ORDERNUMBER)
+    updateSelectInput(inputId = "ordernumber", choices = choices)
+  })
+  
+  output$data <- renderTable({
+    req(input$ordernumber)
+    customer() %>%
+      filter(ORDERNUMBER == input$ordernumber) %>%
+      select(QUANTITYORDERED, PRICEEACH, PRODUCTCODE)
+  })
+}
+
+shinyApp(ui, server)
+```  
+
+      Error in the: "sales-dashboard/sales_data_sample.csv" and now?
+      I didn't understand the code very well.
+
+## Freezing Reactive Inputs
+```{r, eval = TRUE, echo = TRUE} 
+ui <- fluidPage(
+  selectInput("dataset", "Choose a dataset", c("pressure", "cars")),
+  selectInput("column", "Choose column", character(0)),
+  verbatimTextOutput("summary")
+)
+
+server <- function(input, output, session) {
+  dataset <- reactive(get(input$dataset, "package:datasets"))
+ 
+   observeEvent(input$dataset, {
+    updateSelectInput(inputId = "column", choices = names(dataset()))
+  })
+
+  output$summary <- renderPrint({
+    summary(dataset()[[input$column]])
+  })
+}
+
+shinyApp(ui, server)
+```  
+
+# Circular References     
+```{r, eval = TRUE, echo = TRUE} 
+ui <- fluidPage(
+  numericInput("n", "n", 0)
+)
+
+server <- function(input, output, session) {
+  observeEvent(input$n,
+    updateNumericInput(inputId = "n", value = input$n + 1)
+  )
+}
+
+shinyApp(ui, server)
+```      
