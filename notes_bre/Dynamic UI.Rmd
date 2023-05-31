@@ -13,20 +13,21 @@ runtime: shiny
 
 # CHAPTER 10:
 
-  In this chapter We’ll learn how to create dynamic user interfaces, changing the UI using code run in the server function. We begin by loading shiny and other library:
+In this chapter We'll learn how to create dynamic user interfaces, changing the UI using code run in the server function. We begin by loading shiny and other library:
 
-```{r, eval = TRUE} 
+```{r, eval = TRUE}
 library(shiny)
 library(dplyr, warn.conflicts = FALSE)
-``` 
+```
 
-  There are three key techniques for creating dynamic user interfaces:\
-  • Using the update family of functions to modify parameters of input controls;\
-  • Using **tabsetPanel()** to conditionally show and hide parts of the user interface;\
-  • Using **uiOutput()** and **renderUI()** to generate selected parts of the user interface with code.\
-  
+There are three key techniques for creating dynamic user interfaces:\
+• Using the update family of functions to modify parameters of input controls;\
+• Using **tabsetPanel()** to conditionally show and hide parts of the user interface;\
+• Using **uiOutput()** and **renderUI()** to generate selected parts of the user interface with code.\
+
 # Updating Inputs
-```{r, eval = TRUE, echo = TRUE} 
+
+```{r, eval = TRUE, echo = TRUE}
 ui <- fluidPage(
   numericInput("min", "Minimum", 0),
   numericInput("max", "Maximum", 3),
@@ -47,8 +48,10 @@ shinyApp(ui, server)
 
       In this code I didn't understand the **observeEvent** and the ***updateSliderInput** very well.
       
+
 ## Simple Uses
-```{r, eval = TRUE, echo = TRUE} 
+
+```{r, eval = TRUE, echo = TRUE}
 ui <- fluidPage(
   sliderInput("x1", "x1", 0, min = -10, max = 10),
   sliderInput("x2", "x2", 0, min = -10, max = 10),
@@ -66,9 +69,10 @@ server <- function(input, output, session) {
 
 shinyApp(ui, server)
 ```
-  
-  A similar application is to tweak the text of an action button so you know exactly what it’s going to do.
-```{r, eval = TRUE, echo = TRUE} 
+
+A similar application is to tweak the text of an action button so you know exactly what it's going to do.
+
+```{r, eval = TRUE, echo = TRUE}
 ui <- fluidPage(
   numericInput("n", "Simulations", 10),
   actionButton("simulate", "Simulate")
@@ -81,13 +85,15 @@ server <- function(input, output, session) {
   })
 }
 shinyApp(ui, server)
-```  
+```
 
       What is the 10 in the code??  
-  
-##  Hierarchical Select Boxes
-  A interactive drill-down across multiple categories
-```{r, eval = FALSE, echo = TRUE} 
+
+## Hierarchical Select Boxes
+
+A interactive drill-down across multiple categories
+
+```{r, eval = FALSE, echo = TRUE}
 sales <- vroom::vroom(
   "sales-dashboard/sales_data_sample.csv",
   col_types = list(),
@@ -132,13 +138,14 @@ server <- function(input, output, session) {
 }
 
 shinyApp(ui, server)
-```  
+```
 
       Error in the: "sales-dashboard/sales_data_sample.csv" and now?
       I didn't understand the code very well.
 
 ## Freezing Reactive Inputs
-```{r, eval = TRUE, echo = TRUE} 
+
+```{r, eval = TRUE, echo = TRUE}
 ui <- fluidPage(
   selectInput("dataset", "Choose a dataset", c("pressure", "cars")),
   selectInput("column", "Choose column", character(0)),
@@ -158,10 +165,11 @@ server <- function(input, output, session) {
 }
 
 shinyApp(ui, server)
-```  
+```
 
-# Circular References     
-```{r, eval = TRUE, echo = TRUE} 
+# Circular References
+
+```{r, eval = TRUE, echo = TRUE}
 ui <- fluidPage(
   numericInput("n", "n", 0)
 )
@@ -173,4 +181,334 @@ server <- function(input, output, session) {
 }
 
 shinyApp(ui, server)
-```      
+```
+
+# 2º Part
+
+# Dynamic Visibility
+  Selectively show and hide parts of the UI
+```{r, eval = TRUE, echo = TRUE}
+ui <- fluidPage(
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("controller", "Show", choices = paste0("panel", 1:3))
+    ),
+    mainPanel(
+      tabsetPanel(
+        id = "switcher",
+        type = "hidden",
+        tabPanelBody("panel1", "Panel 1 content"),
+        tabPanelBody("panel2", "Panel 2 content"),
+        tabPanelBody("panel3", "Panel 3 content")
+      )
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  observeEvent(input$controller, {
+    updateTabsetPanel(inputId = "switcher", selected = input$controller)
+  })
+}
+
+shinyApp(ui, server)
+```
+  There are two main ideas here:\
+    • Use tabset panel with hidden tabs;\
+    • Use updateTabsetPanel() to switch tabs from the server.
+    
+# Conditional UI   
+```{r, eval = TRUE, echo = TRUE}
+parameter_tabs <- tabsetPanel(
+  id = "params",
+  type = "hidden",
+  tabPanel("normal",
+    numericInput("mean", "mean", value = 1),
+    numericInput("sd", "standard deviation", min = 0, value = 1)
+  ),
+  tabPanel("uniform",
+    numericInput("min", "min", value = 0),
+    numericInput("max", "max", value = 1)
+  ),
+  tabPanel("exponential",
+    numericInput("rate", "rate", value = 1, min = 0),
+  )
+)
+  # I’ll then embed that inside a fuller UI, which allows the user to pick the number of samples and shows a histogram of the results
+ui <- fluidPage(
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("dist", "Distribution",
+        choices = c("normal", "uniform", "exponential")
+      ),
+      numericInput("n", "Number of samples", value = 100),
+      parameter_tabs,
+    ),
+    mainPanel(
+      plotOutput("hist")
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  observeEvent(input$dist, {
+    updateTabsetPanel(inputId = "params", selected = input$dist)
+  })
+
+  sample <- reactive({
+    switch(input$dist,
+      normal = rnorm(input$n, input$mean, input$sd),
+      uniform = runif(input$n, input$min, input$max),
+      exponential = rexp(input$n, input$rate)
+    )
+  })
+  output$hist <- renderPlot(hist(sample()), res = 96)
+}
+
+shinyApp(ui, server)
+```    
+    
+# Wizard Interface    
+  You can also use this idea to create a “wizard,” a type of interface that makes it easier to collect a bunch of information by spreading it across multiple pages. Here we embed action buttons within each **“page"**.
+  
+```{r, eval = TRUE, echo = TRUE}
+ui <- fluidPage(
+  tabsetPanel(
+    id = "wizard",
+    type = "hidden",
+    tabPanel("page_1",
+      "Welcome!",
+      actionButton("page_12", "next")
+    ),
+    tabPanel("page_2",
+      "Only one page to go",
+      actionButton("page_21", "prev"),
+      actionButton("page_23", "next")
+    ),
+    tabPanel("page_3",
+      "You're done!",
+      actionButton("page_32", "prev")
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  switch_page <- function(i) {
+    updateTabsetPanel(inputId = "wizard", selected = paste0("page_", i))
+  }
+  
+  observeEvent(input$page_12, switch_page(2))
+  observeEvent(input$page_21, switch_page(1))
+  observeEvent(input$page_23, switch_page(3))
+  observeEvent(input$page_32, switch_page(2))
+}
+
+shinyApp(ui, server)
+```
+
+      Note the use of the switch_page() function to reduce the amount of duplication in the server code.
+
+# Creating UI with Code
+  This technique gives you the ability to create and modify the user interface while the app is running. There are two parts to this solution:\
+  • **uiOutput()** inserts a placeholder in your ui. This leaves a “hole” that your server code can later fill in;\
+  • **renderUI()** is called within server() to fill in the placeholder with dynamically generated UI.
+  
+## Getting Started
+```{r, eval = TRUE, echo = TRUE}
+ui <- fluidPage(
+  textInput("label", "label"),
+  selectInput("type", "type", c("slider", "numeric")),
+  uiOutput("numeric")
+)
+
+server <- function(input, output, session) {
+  output$numeric <- renderUI({
+    if (input$type == "slider") {
+      sliderInput("dynamic", input$label, value = 0, min = 0, max = 10)
+    } else {
+      numericInput("dynamic", input$label, value = 0, min = 0, max = 10)
+    }
+  })
+}
+
+shinyApp(ui, server)
+```
+  we can fix the problem by setting the value of the new input to the current value of the existing control:
+```{r, eval = TRUE, echo = TRUE}
+ui <- fluidPage(
+  textInput("label", "label"),
+  selectInput("type", "type", c("slider", "numeric")),
+  uiOutput("numeric")
+)
+
+server <- function(input, output, session) {
+  output$numeric <- renderUI({
+    value <- isolate(input$dynamic)
+    if (input$type == "slider") {
+      sliderInput("dynamic", input$label, value = value, min = 0, max = 10)
+    } else {
+      numericInput("dynamic", input$label, value = value, min = 0, max = 10)
+    }
+  })
+}
+
+shinyApp(ui, server)
+```
+
+      The use of isolate() is important. Here it ensures that we don’t create a reactive dependency that would cause this code to rerun every time input$dynamic changes (which will happen whenever the user modifies the value). We only want it to change when **input$type** or **input$label** changes.
+
+## Multiple Controls
+  Dynamic UI is most useful when you are generating an arbitrary number or type of controls. That means that you’ll be generating UI with code, and I recommend using functional programming for this sort of task. Here I’ll use **purrr::map()** and **purrr::reduce()**, but you could certainly do the same with the base lapply() and Reduce() functions:
+```{r, eval = TRUE, echo = TRUE}
+library(purrr)
+
+ui <- fluidPage(
+  numericInput("n", "Number of colours", value = 5, min = 1),
+  uiOutput("col"),
+  textOutput("palette")
+)
+
+server <- function(input, output, session) {
+  col_names <- reactive(paste0("col", seq_len(input$n)))
+
+  output$col <- renderUI({
+    map(col_names(), ~ textInput(.x, NULL))
+  })
+
+  output$palette <- renderText({
+    map_chr(col_names(), ~ input[[.x]] %||% "")
+  })
+}
+shinyApp(ui, server)
+```
+  
+  I’ll also tweak the appearance to look a little nicer, including displaying the selected colors in a plot.
+```{r, eval = TRUE, echo = TRUE}
+library(purrr)
+
+ui <- fluidPage(
+  sidebarLayout(
+    sidebarPanel(
+      numericInput("n", "Number of colours", value = 5, min = 1),
+      uiOutput("col"),
+    ),
+    mainPanel(
+      plotOutput("plot")
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  col_names <- reactive(paste0("col", seq_len(input$n)))
+
+  output$col <- renderUI({
+    map(col_names(), ~ textInput(.x, NULL, value = isolate(input[[.x]])))
+  })
+
+  output$plot <- renderPlot({
+    cols <- map_chr(col_names(), ~ input[[.x]] %||% "")
+    # convert empty inputs to transparent
+    cols[cols == ""] <- NA
+
+    barplot(
+      rep(1, length(cols)),
+      col = cols,
+      space = 0,
+      axes = FALSE
+    )
+  }, res = 96)
+}
+
+shinyApp(ui, server)
+```
+
+# Dynamic Filtering
+I’ll start with a function that creates the UI for a single variable. It’ll return a range slider for numeric inputs, a multiselect for factor inputs, and NULL (nothing) for all other types:
+```{r, eval = TRUE, echo = TRUE}
+make_ui <- function(x, var) {
+  if (is.numeric(x)) {
+    rng <- range(x, na.rm = TRUE)
+    sliderInput(var, var, min = rng[1], max = rng[2], value = rng)
+  } else if (is.factor(x)) {
+    levs <- levels(x)
+    selectInput(var, var, choices = levs, selected = levs, multiple = TRUE)
+  } else {
+    # Not supported
+    NULL
+  }
+}
+
+filter_var <- function(x, val) {
+  if (is.numeric(x)) {
+    !is.na(x) & x >= val[1] & x <= val[2]
+  } else if (is.factor(x)) {
+    x %in% val
+  } else {
+    # No control, so don't filter
+    TRUE
+  }
+}
+
+ui <- fluidPage(
+  sidebarLayout(
+    sidebarPanel(
+      make_ui(iris$Sepal.Length, "Sepal.Length"),
+      make_ui(iris$Sepal.Width, "Sepal.Width"),
+      make_ui(iris$Species, "Species")
+    ),
+    mainPanel(
+      tableOutput("data")
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  selected <- reactive({
+    filter_var(iris$Sepal.Length, input$Sepal.Length) &
+      filter_var(iris$Sepal.Width, input$Sepal.Width) &
+      filter_var(iris$Species, input$Species)
+  })
+
+  output$data <- renderTable(head(iris[selected(), ], 12))
+}
+
+shinyApp(ui, server)
+```
+
+  From there, it’s a simple generalization to work with any data frame. Here, I’ll illus‐trate it using the data frames in the datasets package, but you can easily imagine how you might extend this to user-uploaded data:
+```{r, eval = TRUE, echo = TRUE}
+
+dfs <- keep(ls("package:datasets"), ~ is.data.frame(get(.x, "package:datasets")))
+
+ui <- fluidPage(
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("dataset", label = "Dataset", choices = dfs),
+      uiOutput("filter")
+    ),
+    mainPanel(
+      tableOutput("data")
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  data <- reactive({
+    get(input$dataset, "package:datasets")
+  })
+  vars <- reactive(names(data()))
+
+  output$filter <- renderUI(
+    map(vars(), ~ make_ui(data()[[.x]], .x))
+  )
+
+  selected <- reactive({
+    each_var <- map(vars(), ~ filter_var(data()[[.x]], input[[.x]]))
+    reduce(each_var, `&`)
+  })
+  
+  output$data <- renderTable(head(data()[selected(), ], 12))
+}
+
+shinyApp(ui, server)
+```
