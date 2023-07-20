@@ -12,13 +12,14 @@ app_ui <- function(request) {
     golem_add_external_resources(),
     # List the first level UI elements here 
     dashboardPage(
-      dashboardHeader(title = "StatGen-ESALQ App"),
+      dashboardHeader(title = "StatGen-ESALQ App_Pedro"),
       dashboardSidebar(
         sidebarMenu(
           menuItem("About", tabName = "about", icon = icon("address-card")),
           menuItem("Single environment", tabName = "single", icon = icon("circle"),
                    menuSubItem("Assumptions test", tabName = "assumptionsTest", icon = icon("crosshairs")),
-                   menuSubItem("Selection indices", tabName = "indices", icon = icon("crosshairs"))
+                   menuSubItem("Selection indices", tabName = "indices", icon = icon("crosshairs")),
+                   menuSubItem("DIC", tabName = "dic", icon = icon("crosshairs"))
                    ),
           menuItem("Multi environment", tabName = "multi", icon = icon("circle"),
                    #menuSubItem("Assumptions test", tabName = "METassumptionsTest", icon = icon("crosshairs")),
@@ -112,6 +113,10 @@ app_ui <- function(request) {
           ),
           tabItem(tabName = "indices",
                   mod_indices_ui("indices_ui_1")
+          ),
+          # Ver sobre isso!!!
+          tabItem(tabName = "dic",
+                  mod_dic_ui("dic_ui_1") #Pelo amor de Deus, da onde saiu isso!!!
           ),
           # tabItem(tabName = "METassumptionsTest",
           #         mod_METassumptionsTest_ui("METassumptionsTest_ui_1")
