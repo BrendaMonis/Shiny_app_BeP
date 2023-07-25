@@ -1,4 +1,4 @@
-#' The application User-Interface
+#' The application User-Interface 
 #' 
 #' @param request Internal parameter for `{shiny}`. 
 #'     DO NOT REMOVE.
@@ -26,6 +26,12 @@ app_ui <- function(request) {
                    menuSubItem("Selection indices", tabName = "METindices", icon = icon("crosshairs")),
                    menuSubItem("Stability analysis", tabName = "MET_metan", icon = icon("crosshairs")),
                    menuSubItem("Mixed models", tabName = "mixedModel", icon = icon("crosshairs"))
+                   ),
+          # New menuItem 
+          menuItem("Statistical analysis", tabName = "Stat", icon = icon("circle"),
+                   menuSubItem("Completely randomized design", tabName = "DIC", icon = icon("crosshairs")),
+                   menuSubItem("Randomized block design", tabName = "DBC", icon = icon("crosshairs")),
+                   menuSubItem("Split Plot", tabName = "parc_sub", icon = icon("crosshairs"))
                    ),
           tags$li(class = "dropdown",
                   tags$a(href="https://statgen-esalq.github.io/", target="_blank", 
@@ -129,7 +135,17 @@ app_ui <- function(request) {
           ),
           tabItem(tabName = "mixedModel",
                   mod_MixedModel_ui("MixedModel_ui_1")
-          )
+          ),
+          # Third tab
+          tabItem(tabName = "DIC",
+                  mod_dic_ui("dic_ui_1")
+          #),
+          #tabItem(tabName = "DBC",
+                  #mod_DBC_ui("DBC_ui_1")
+          #),
+          #tabItem(tabName = "parc_sub",
+                  #mod_splitPlot_ui("splitPlot_ui_1")
+          )        
         )
       )
     )
