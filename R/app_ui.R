@@ -1,10 +1,11 @@
 #' The application User-Interface 
-#' 
+#'  
 #' @param request Internal parameter for `{shiny}`. 
 #'     DO NOT REMOVE.
 #' @import shiny
 #' @import shinydashboard
 #' @import shinymanager
+#' @import markdown
 #' @noRd
 app_ui <- function(request) {
   tagList(
@@ -12,26 +13,26 @@ app_ui <- function(request) {
     golem_add_external_resources(),
     # List the first level UI elements here 
     dashboardPage(
-      dashboardHeader(title = "StatGen-ESALQ App_Pedro"),
+      dashboardHeader(title = div("DesiginGen", style="text-align: middle;")),
       dashboardSidebar(
         sidebarMenu(
-          menuItem("About", tabName = "about", icon = icon("address-card")),
-          menuItem("Single environment", tabName = "single", icon = icon("circle"),
-                   menuSubItem("Assumptions test", tabName = "assumptionsTest", icon = icon("crosshairs")),
-                   menuSubItem("Selection indices", tabName = "indices", icon = icon("crosshairs")),
-                   menuSubItem("DIC", tabName = "dic", icon = icon("crosshairs"))
+          menuItem("About", tabName = "about", icon = icon("bookmark")),
+          menuItem("Single environment", tabName = "single", 
+                   menuSubItem("Assumptions test", tabName = "assumptionsTest", icon = icon("minus")),
+                   menuSubItem("Selection indices", tabName = "indices", icon = icon("minus")),
+                   menuSubItem("DIC", tabName = "dic", icon = icon("minus"))
                    ),
-          menuItem("Multi environment", tabName = "multi", icon = icon("circle"),
+          menuItem("Multi environment", tabName = "multi", 
                    #menuSubItem("Assumptions test", tabName = "METassumptionsTest", icon = icon("crosshairs")),
-                   menuSubItem("Selection indices", tabName = "METindices", icon = icon("crosshairs")),
-                   menuSubItem("Stability analysis", tabName = "MET_metan", icon = icon("crosshairs")),
-                   menuSubItem("Mixed models", tabName = "mixedModel", icon = icon("crosshairs"))
+                   menuSubItem("Selection indices", tabName = "METindices", icon = icon("minus")),
+                   menuSubItem("Stability analysis", tabName = "MET_metan", icon = icon("minus")),
+                   menuSubItem("Mixed models", tabName = "mixedModel", icon = icon("minus"))
                    ),
           # New menuItem 
-          menuItem("Statistical analysis", tabName = "Stat", icon = icon("circle"),
-                   menuSubItem("Completely randomized design", tabName = "DIC", icon = icon("crosshairs")),
-                   menuSubItem("Randomized block design", tabName = "DBC", icon = icon("crosshairs")),
-                   menuSubItem("Split Plot", tabName = "parc_sub", icon = icon("crosshairs"))
+          menuItem("Statistical analysis", tabName = "Stat", 
+                   menuSubItem("Completely randomized design", tabName = "DIC", icon = icon("minus")),
+                   menuSubItem("Randomized block design", tabName = "DBC", icon = icon("minus")),
+                   menuSubItem("Split Plot", tabName = "parc_sub", icon = icon("minus"))
                    ),
           tags$li(class = "dropdown",
                   tags$a(href="https://statgen-esalq.github.io/", target="_blank", 
@@ -107,7 +108,14 @@ app_ui <- function(request) {
         border-right-color:#003350;
         border-top-color:#003350;
         }
+        
+        .main-header .logo {
+        font-family: "Georgia", Times, "Times New Roman", serif;
+        font-weight: bold;
+        font-size: 34px;
+        }
                               '))),
+    
         
         tabItems(
           # First tab content
@@ -170,10 +178,9 @@ golem_add_external_resources <- function(){
     favicon(),
     bundle_resources(
       path = app_sys('app/www'),
-      app_title = 'StatGenESALQ'
+      app_title = 'STATgen'
     )
     # Add here other external resources
     # for example, you can add shinyalert::useShinyalert() 
   )
 }
-
