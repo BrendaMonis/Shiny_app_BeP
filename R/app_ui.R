@@ -13,7 +13,7 @@ app_ui <- function(request) {
     golem_add_external_resources(),
     # List the first level UI elements here 
     dashboardPage(
-      dashboardHeader(title = div("DesiginGen", style="text-align: middle;")),
+      dashboardHeader(title = div("DesignGen", style="text-align: middle;")),
       dashboardSidebar(
         sidebarMenu(
           menuItem("About", tabName = "about", icon = icon("bookmark")),
