@@ -15,4 +15,5 @@ app_server <- function( input, output, session ) {
   callModule(mod_met_server, "met_ui_1")
   callModule(mod_MixedModel_server, "MixedModel_ui_1")
   callModule(mod_dic_server, "dic_ui_1")
+  callModule(mod_dbc_server, "dbc_ui_1")
 }
