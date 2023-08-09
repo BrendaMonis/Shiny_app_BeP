@@ -217,7 +217,7 @@ mod_dbc_server <- function(input, output, session){
       dat$local <- as.factor(dat$local)
 
       if(is.null(input$data_assum) == F){
-        if(!all(c("local", "block", "gen") %in% colnames(dat))) | ("rep" %in% colnames(dat)))
+        if(!all(c("local", "block", "gen") %in% colnames(dat)))
           stop(safeError("Randomized complete block design should have columns 'local', 'block' and 'gen'."))
         dat <- dat %>% select(c("local", "gen", "block",input$assum2)) %>%
           filter(local == input$assum3) %>% droplevels()
