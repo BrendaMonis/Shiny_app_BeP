@@ -147,9 +147,9 @@ app_ui <- function(request) {
           # Third tab
           tabItem(tabName = "DIC",
                   mod_dic_ui("dic_ui_1")
-          #),
-          #tabItem(tabName = "DBC",
-                  #mod_DBC_ui("DBC_ui_1")
+          ),
+          tabItem(tabName = "DBC",
+                  mod_dbc_ui("dbc_ui_1")
           #),
           #tabItem(tabName = "parc_sub",
                   #mod_splitPlot_ui("splitPlot_ui_1")
