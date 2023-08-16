@@ -135,7 +135,7 @@ mod_dbc_ui <- function(id){
 #' @noRd 
 mod_dbc_server <- function(input, output, session){
   ns <- session$ns
-  ## download input
+  # download input
   output$assum_input_exemple <- downloadHandler(
     filename =  function() {
       paste("example_assum.txt")
@@ -168,7 +168,7 @@ mod_dbc_server <- function(input, output, session){
     str(input$data_assum)
     #Here's taking the examples
     if(is.null(input$data_assum)){
-      # I have to change this example to CRD
+      # I have to change this example 
       dat <- read.csv(system.file("ext","example_inputs/example_blocks.csv", package = "StatGenESALQ"))
     } else {
       #Here's the upload
@@ -282,15 +282,43 @@ mod_dbc_server <- function(input, output, session){
       labs(title = "Histogram of Residuals",x = "Residuals", y = "Frequency")
   })
   
-  output$assum_anova_out <- DT::renderDataTable(
-    DT::datatable(data.frame(anova(button_assum2()[[1]])),  
+  # output$assum_anova_out <- DT::renderDataTable(
+  #   DT::datatable(data.frame(anova(button_assum2()[[1]])),  
+  #                 extensions = 'Buttons',
+  #                 options = list(
+  #                   dom = 'Bfrtlp',
+  #                   buttons = c('copy', 'csv', 'excel', 'pdf')
+  #                 ),
+  #                 class = "display")
+  # )
+  output$assum_anova_out <- DT::renderDataTable({
+    # Obtenha o conjunto de dados
+    data <- anova(button_assum2()[[1]])
+    
+    # Especifique as colunas que deseja arredondar e o número de casas decimais
+    # columns_to_round <- c("Sum.Sq", "Mean.Sq", "F.value", "Pr..F.", "outra_coluna1", "outra_coluna2")
+    decimal_places1 <- 2  # Especifique o número de casas decimais
+    
+    # Arredonde as colunas selecionadas
+    for (col in 2:4) {
+      data[[col]] <- round(as.numeric(data[[col]]), decimal_places1)
+    }
+    
+    decimal_places1 <- 5
+    for (col in 5) {
+      data[[col]] <- round(as.numeric(data[[col]]), decimal_places1)
+    }
+    
+    # Crie a tabela DataTable
+    DT::datatable(data,
+                  rownames = c("block", "gen","residual"),
                   extensions = 'Buttons',
                   options = list(
                     dom = 'Bfrtlp',
                     buttons = c('copy', 'csv', 'excel', 'pdf')
                   ),
                   class = "display")
-  )
+  })
   
   output$assum_sha_out <- DT::renderDataTable(
     DT::datatable(button_assum2()[[2]],  
